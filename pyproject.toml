@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "busylight-m365-linux"
+version = "0.1.0"
+description = "Integrates Busylight with Microsoft 365 presence on Linux"
+readme = "README.md"
+license = { text = "GPL-3.0" }
+authors = [
+  { name = "Maldo Manna", email = "maldo.manna@pm.me" }
+]
+requires-python = ">=3.8"
+dependencies = [
+  "requests",
+  "msal",
+  "busylight-for-humans"
+]
+
+[project.scripts]
+busylight-m365 = "busylight_m365_linux.main:main"
+
+[tool.setuptools.package-data]
+"busylight_m365_linux" = ["default_config.json"]

@@ -4,7 +4,6 @@
   "m365_client_id": "DEINE_CLIENT_ID",
   "m365_tenant_id": "DEIN_TENANT_ID",
   "busylight_api_url": "http://localhost:8000/api/v1",
-  "token_cache_file": "/opt/busylight/token_cache.json",
   "dim": 1,
   "status_mapping": {
     "Available":       {"type": "color", "color": "green"},

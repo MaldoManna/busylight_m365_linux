@@ -2,15 +2,32 @@
 import os
 import json
 import time
-import subprocess
 import requests
 import msal
+from pathlib import Path
+
 
 # ---------------------------
 # Laden der Konfiguration
 # ---------------------------
-CONFIG_FILE = "config.json"
-TOKEN_FILE = "token.json"
+
+# XDG oder Fallback auf ~/.busylight/
+CONFIG_DIR = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")) / "busylight"
+STATE_DIR = Path(os.getenv("XDG_STATE_HOME", Path.home() / ".local/state")) / "busylight"
+
+CONFIG_FILE = CONFIG_DIR / "config.json"
+TOKEN_CACHE_FILE = STATE_DIR / "token.json"
+
+# Verzeichnisse bei Bedarf anlegen
+CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+if not CONFIG_FILE.exists():
+    import importlib.resources
+    default = importlib.resources.files("busylight_m365_linux").joinpath("default_config.json")
+    with default.open("r") as src, CONFIG_FILE.open("w") as dst:
+        dst.write(src.read())
+    print(f"[INFO] Default config created at {CONFIG_FILE}")
 
 with open(CONFIG_FILE, "r") as f:
     config = json.load(f)
@@ -21,7 +38,6 @@ BUSYLIGHT_API = config.get("busylight_api_url", "http://localhost:8000/api/v1")
 CLIENT_ID = config.get("m365_client_id")
 TENANT_ID = config.get("m365_tenant_id")
 USER_EMAIL = config.get("user_email")
-TOKEN_CACHE_FILE = config.get("token_cache_file")
 STATUS_MAPPING = config.get("status_mapping", {})
 DIM = config.get("dim", 1.0)
 
