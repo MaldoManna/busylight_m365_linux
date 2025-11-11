@@ -1,0 +1,18 @@
+{
+  "poll_interval": 2, 
+  "debug": true,
+  "m365_client_id": "DEINE_CLIENT_ID",
+  "m365_tenant_id": "DEIN_TENANT_ID",
+  "busylight_api_url": "http://localhost:8000/api/v1",
+  "token_cache_file": "/opt/busylight/token_cache.json",
+  "dim": 1,
+  "status_mapping": {
+    "Available":       {"type": "color", "color": "green"},
+    "Away":            {"type": "color", "color": "yellow"},
+    "BeRightBack":     {"type": "color", "color": "yellow"},
+    "Busy":            {"type": "color", "color": "red"},
+    "DoNotDisturb":    {"type": "effect", "color": "red", "value": "pulse", "speed": "medium"},
+    "Offline":         {"type": "effect", "value": "rainbow", "speed": "medium"},
+    "PresenceUnknown": {"type": "effect", "value": "rainbow", "speed": "fast"}
+  }
+}

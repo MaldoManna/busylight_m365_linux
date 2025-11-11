@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+import os
+import json
+import time
+import subprocess
+import requests
+import msal
+
+# ---------------------------
+# Laden der Konfiguration
+# ---------------------------
+CONFIG_FILE = "config.json"
+TOKEN_FILE = "token.json"
+
+with open(CONFIG_FILE, "r") as f:
+    config = json.load(f)
+
+POLL_INTERVAL = config.get("poll_interval", 30)
+DEBUG = config.get("debug", True)
+BUSYLIGHT_API = config.get("busylight_api_url", "http://localhost:8000/api/v1")
+CLIENT_ID = config.get("m365_client_id")
+TENANT_ID = config.get("m365_tenant_id")
+USER_EMAIL = config.get("user_email")
+TOKEN_CACHE_FILE = config.get("token_cache_file")
+STATUS_MAPPING = config.get("status_mapping", {})
+DIM = config.get("dim", 1.0)
+
+
+# ---------------------------
+# Cache
+# ---------------------------
+
+def load_cache():
+    cache = msal.SerializableTokenCache()
+    if os.path.exists(TOKEN_CACHE_FILE):
+        with open(TOKEN_CACHE_FILE, "r") as f:
+            cache.deserialize(f.read())
+    return cache
+
+def save_cache(cache):
+    if cache.has_state_changed:
+        if not os.path.exists(TOKEN_CACHE_FILE):
+            os.makedirs(os.path.dirname(TOKEN_CACHE_FILE), exist_ok=True)
+        with open(TOKEN_CACHE_FILE, "w") as f:
+            f.write(cache.serialize())
+
+# ---------------------------
+# MS Graph Auth
+# ---------------------------
+SCOPES = ["Presence.Read"]
+
+def get_token(app, cache):
+    accounts = app.get_accounts()
+    result = None
+
+    # 1. Versuche, still zu erneuern (z.B. per Refresh Token)
+    if accounts:
+        result = app.acquire_token_silent(SCOPES, account=accounts[0])
+
+    # 2. Falls kein gültiges Token: Device Flow starten
+    if not result:
+        flow = app.initiate_device_flow(scopes=SCOPES)
+        if "user_code" not in flow:
+            raise Exception("Device Flow konnte nicht initialisiert werden.")
+        print(flow["message"])
+        result = app.acquire_token_by_device_flow(flow)
+
+    return result
+
+# ---------------------------
+# Busylight API
+# ---------------------------
+def set_light(color, light_id):
+    if DEBUG:
+        print(f"[DEBUG] Set light {light_id or 'all'} to {color}")
+    url = f"{BUSYLIGHT_API}/lights/{light_id}/on" if light_id else f"{BUSYLIGHT_API}/lights/on"
+    data = {"color": color, "dim": DIM}
+    response = requests.post(url, json=data)
+    if DEBUG:
+        print(f"[DEBUG] Request URL: {url}")
+        print(f"[DEBUG] Request Data: {data}")
+        print(f"[DEBUG] Response: {response.status_code} - {response.text}")
+
+def set_status_light(status, light_id=None):
+    mapping = STATUS_MAPPING.get(status)
+    if not mapping:
+        # Fallback
+        mapping = {"type": "effect", "value": "rainbow", "speed": "fast"}
+
+    if mapping["type"] == "color":
+        color = mapping.get("color", "green")
+        set_light(color, light_id)
+    elif mapping["type"] == "effect":
+        effect = mapping.get("value")
+        data = {
+            "color": mapping.get("color"),
+            "dim": mapping.get("dim", 1.0),
+            "speed": mapping.get("speed", "medium"),
+        }
+        if DEBUG:
+            print(f"[DEBUG] Set light {light_id or 'all'} effect {effect} with {data}")
+        url = f"{BUSYLIGHT_API}/effects/{light_id}/{effect}" if light_id else f"{BUSYLIGHT_API}/effects/{effect}"
+        response = requests.post(url, json=data)
+        if DEBUG:
+            print(f"[DEBUG] Request URL: {url}")
+            print(f"[DEBUG] Request Data: {data}")
+            print(f"[DEBUG] Response: {response.status_code} - {response.text}")
+
+# ---------------------------
+# M365 Status Abfrage
+# ---------------------------
+def get_user_presence(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    url = f"https://graph.microsoft.com/v1.0/me/presence"
+    r = requests.get(url, headers=headers)
+    r.raise_for_status()
+    data = r.json()
+    return data.get("availability", "Offline")
+
+# ---------------------------
+# Main Loop
+# ---------------------------
+def main():
+    cache = load_cache()
+    app = msal.PublicClientApplication(
+        CLIENT_ID,
+        authority=f"https://login.microsoftonline.com/{TENANT_ID}",
+        token_cache=cache
+    )
+
+    token_result = get_token(app, cache)
+    save_cache(cache)
+    last_status = None
+
+    while True:
+        try:
+            token = token_result["access_token"]
+            status = get_user_presence(token)
+            if status != last_status:
+                set_status_light(status)
+                last_status = status
+            else:
+                print(f"[INFO] Status unchanged: {status}")
+        except Exception as e:
+            print(f"[ERROR] {e}")
+
+        time.sleep(POLL_INTERVAL)
+
+if __name__ == "__main__":
+    main()
