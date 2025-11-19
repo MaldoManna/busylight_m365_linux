@@ -14,7 +14,7 @@ pipx install busylight_m365_linux-0.1.1-py3-none-any.whl
 
 2. Install **BusyLight for Humans** by following the instructions here:
 
-* [https://github.com/JnyJny/busylight](https://github.com/JnyJny/busylight)
+* [https://jnyjny.github.io/busylight/installation/#web-api-installation](https://jnyjny.github.io/busylight/installation/#web-api-installation)
 
   Make sure you install the version that includes the **Web API**.
 
