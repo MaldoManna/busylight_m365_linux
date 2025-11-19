@@ -112,7 +112,7 @@ def set_status_light(status, light_id=None):
     if not mapping:
         # Fallback
         mapping = {"type": "effect", "value": "rainbow", "speed": "fast"}
-
+    reset_light(light_id) # Reset before setting new status
     if mapping["type"] == "color":
         color = mapping.get("color", "green")
         set_light(color, light_id)

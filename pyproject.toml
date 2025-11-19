@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "busylight-m365-linux"
-version = "0.1.0"
+version = "0.1.1"
 description = "Integrates Busylight with Microsoft 365 presence on Linux"
 readme = "README.md"
 license = { text = "GPL-3.0" }
