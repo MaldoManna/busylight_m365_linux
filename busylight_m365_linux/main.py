@@ -87,6 +87,7 @@ def get_token(app, cache):
 # Busylight API
 # ---------------------------
 def set_light(color, light_id):
+    
     if DEBUG:
         print(f"[DEBUG] Set light {light_id or 'all'} to {color}")
     url = f"{BUSYLIGHT_API}/lights/{light_id}/on" if light_id else f"{BUSYLIGHT_API}/lights/on"
@@ -95,6 +96,15 @@ def set_light(color, light_id):
     if DEBUG:
         print(f"[DEBUG] Request URL: {url}")
         print(f"[DEBUG] Request Data: {data}")
+        print(f"[DEBUG] Response: {response.status_code} - {response.text}")
+
+def reset_light(light_id):
+    if DEBUG:
+        print(f"[DEBUG] Reset light {light_id or 'all'}")
+    url = f"{BUSYLIGHT_API}/lights/{light_id}/off" if light_id else f"{BUSYLIGHT_API}/lights/off"
+    response = requests.post(url)
+    if DEBUG:
+        print(f"[DEBUG] Request URL: {url}")
         print(f"[DEBUG] Response: {response.status_code} - {response.text}")
 
 def set_status_light(status, light_id=None):
